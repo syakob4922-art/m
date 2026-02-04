@@ -1,0 +1,346 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>OTT UI + Search</title>
+
+<style>
+body{
+    margin:0;
+    background:#0b0b0b;
+    color:white;
+    font-family:Arial;
+}
+
+/* SEARCH BAR */
+
+.searchBar{
+    position:fixed;
+    top:0;
+    width:100%;
+    padding:15px;
+    background:#111;
+    z-index:5;
+}
+
+.searchBar input{
+    width:100%;
+    padding:12px;
+    font-size:18px;
+    border:none;
+    border-radius:6px;
+}
+
+/* LAYOUT */
+
+.container{
+    margin-top:70px;
+    display:flex;
+}
+
+/* HERO */
+
+.hero{
+    flex:3;
+    padding:20px;
+    position:relative;
+}
+
+.hero img{
+    width:100%;
+    height:65vh;
+    object-fit:cover;
+    border-radius:12px;
+}
+
+.heroTitle{
+    position:absolute;
+    bottom:40px;
+    left:40px;
+    font-size:38px;
+}
+
+/* SIDE */
+
+.sideList{
+    flex:1;
+    padding:20px;
+}
+
+.poster{
+    height:130px;
+    margin-bottom:15px;
+    border-radius:8px;
+    overflow:hidden;
+    opacity:.6;
+}
+
+.poster img{
+    width:100%;
+    height:100%;
+    object-fit:cover;
+}
+
+/* BOTTOM */
+
+.bottomRow{
+    background:#111;
+    padding:15px;
+    display:flex;
+    gap:18px;
+    overflow-x:auto;
+}
+
+.bottomMovie{
+    min-width:240px;
+    aspect-ratio:16/9;
+    border-radius:10px;
+    overflow:hidden;
+    cursor:pointer;
+}
+
+.bottomMovie img{
+    width:100%;
+    height:100%;
+    object-fit:cover;
+}
+
+/* SEARCH RESULTS */
+
+.results{
+    padding:20px;
+}
+
+.resultItem{
+    padding:12px;
+    margin-bottom:6px;
+    background:#1a1a1a;
+    border-radius:6px;
+    cursor:pointer;
+}
+
+/* MODAL */
+
+.modal{
+    position:fixed;
+    top:10%;
+    left:10%;
+    width:80%;
+    height:80%;
+    background:#111;
+    border-radius:12px;
+    padding:20px;
+    overflow:auto;
+    display:none;
+    z-index:999;
+}
+
+.closeBtn{
+    position:absolute;
+    top:15px;
+    right:20px;
+    font-size:22px;
+    cursor:pointer;
+}
+
+.linkBtn{
+    display:inline-block;
+    padding:8px 14px;
+    margin-top:6px;
+    margin-right:6px;
+    background:#e50914;
+    border-radius:4px;
+    text-decoration:none;
+    color:white;
+}
+</style>
+</head>
+
+<body>
+
+<div class="searchBar">
+<input id="searchInput" placeholder="Search movie / series...">
+</div>
+
+<div class="results" id="results"></div>
+
+<div class="container">
+<div class="hero">
+<img id="heroImg">
+<div class="heroTitle" id="heroTitle"></div>
+</div>
+<div class="sideList" id="sideList"></div>
+</div>
+
+<h3 style="margin:20px">Top 10 - 2025 Movies</h3>
+<div class="bottomRow" id="focusBottom"></div>
+
+<div class="modal" id="popup">
+<span class="closeBtn" onclick="closePopup()">✖</span>
+<div id="popupContent"></div>
+</div>
+
+<script>
+
+/* ===== TOP OTT DATA ===== */
+
+const movies_for_hero=[
+{title:"Parasakthi",poster:"https://cdn.district.in/movies-assets/images/cinema/Cover%20(7)-149cdeb0-dd81-11f0-bc8c-59ed3a19c8cc.jpg"},
+{title:"Mask",poster:"https://th-i.thgim.com/public/entertainment/movies/d3r2wo/article70197148.ece/alternates/LANDSCAPE_1200/Kavin%20Mask.jfif"}
+];
+
+const movies_for_2025=[
+{title:"Tourist Family",poster:"https://www.chennaitop10.com/wp-content/uploads/2025/04/maxresdefault-7-1.jpg"},
+{title:"Bison",poster:"https://static.toiimg.com/thumb/msid-124740275,width-1280,height-720,resizemode-4/124740275.jpg"}
+];
+
+/* ===== JSON URL ===== */
+
+const MOVIE_URL="https://raw.githubusercontent.com/syakob4922-art/m/refs/heads/main/allMoviesIsaimaniIds.json";
+const SERIES_URL="https://raw.githubusercontent.com/syakob4922-art/m/refs/heads/main/allwebSeriesIsaimaniIds.json";
+
+let ALL_DATA=[];
+
+async function loadData(){
+const [m,s]=await Promise.all([fetch(MOVIE_URL),fetch(SERIES_URL)]);
+ALL_DATA=[...(await m.json()),...(await s.json())];
+}
+loadData();
+
+/* ===== HERO ===== */
+
+const heroImg=document.getElementById("heroImg");
+const heroTitle=document.getElementById("heroTitle");
+const sideList=document.getElementById("sideList");
+
+let heroIndex=0;
+
+function renderHero(){
+const m=movies_for_hero[heroIndex];
+heroImg.src=m.poster;
+heroTitle.textContent=m.title;
+
+sideList.innerHTML="";
+movies_for_hero.forEach((mv,i)=>{
+if(i!==heroIndex){
+sideList.innerHTML+=`<div class="poster"><img src="${mv.poster}"></div>`;
+}
+});
+}
+renderHero();
+
+/* ===== TOP 10 ===== */
+
+const bottomRow=document.getElementById("focusBottom");
+
+function renderBottom(){
+bottomRow.innerHTML="";
+
+movies_for_2025.forEach(movie=>{
+
+const div=document.createElement("div");
+div.className="bottomMovie";
+div.innerHTML=`<img src="${movie.poster}">`;
+
+/* CLICK TOP10 → FIND JSON DATA */
+div.onclick=()=>{
+const found=ALL_DATA.find(d=>d.name.toLowerCase()===movie.title.toLowerCase());
+if(found) openPopup(found);
+};
+
+bottomRow.appendChild(div);
+});
+}
+renderBottom();
+
+/* ===== SEARCH ===== */
+
+const searchInput=document.getElementById("searchInput");
+const results=document.getElementById("results");
+
+searchInput.addEventListener("input",()=>{
+
+const text=searchInput.value.trim().toLowerCase();
+
+/* HIDE IF EMPTY */
+if(!text){
+results.innerHTML="";
+return;
+}
+
+const filtered=ALL_DATA.filter(m=>m.name.toLowerCase().includes(text));
+
+results.innerHTML="";
+
+filtered.forEach(item=>{
+const div=document.createElement("div");
+div.className="resultItem";
+div.textContent=item.name;
+div.onclick=()=>openPopup(item);
+results.appendChild(div);
+});
+});
+
+/* ===== POPUP ===== */
+
+function openPopup(item){
+
+const box=document.getElementById("popupContent");
+box.innerHTML=`<h2>${item.name}</h2>`;
+
+/* MOVIE */
+if(item.source){
+item.source.forEach(s=>{
+box.innerHTML+=buildLinks(s.resolution,s.id);
+});
+}
+
+/* PARTS */
+if(item.part){
+item.part.forEach(p=>{
+box.innerHTML+=buildLinks(`Part ${p.part}`,p.id);
+});
+}
+
+/* SERIES */
+if(item.type==="season"){
+item.source.forEach(season=>{
+season.episodes.forEach(ep=>{
+box.innerHTML+=buildLinks(`Episode ${ep.episode}`,ep.id);
+});
+});
+}
+
+popup.style.display="block";
+}
+
+/* ===== LINK BUILDER ===== */
+
+function buildLinks(title,id){
+return `
+<div style="margin-bottom:10px">
+<div>${title}</div>
+
+<a class="linkBtn"
+target="_blank"
+href="https://movies.downloadpage.xyz/download/page/${id}">
+Download
+</a>
+
+<a class="linkBtn"
+target="_blank"
+href="https://play.onestream.watch/stream/page/${id}">
+Watch Online
+</a>
+</div>`;
+}
+
+/* ===== CLOSE POPUP ===== */
+
+function closePopup(){
+popup.style.display="none";
+}
+
+</script>
+</body>
+</html>
